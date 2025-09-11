@@ -1,3 +1,4 @@
+import os
 import os.path as osp
 from torch.nn import functional as F
 import torch
@@ -13,8 +14,12 @@ from models.basic_template import TrainTask
 from .corediff_wrapper import Network, WeightNet
 from .diffusion_modules import Diffusion
 
+import numpy as np
 import wandb
 
+################# CODE ADD ################
+from skimage import exposure
+ ################# CODE ADD ################
 
 class corediff(TrainTask):
     @staticmethod
@@ -34,6 +39,11 @@ class corediff(TrainTask):
         parser.add_argument('--only_adjust_two_step', action='store_true')
         parser.add_argument('--start_adjust_iter', default=1, type=int)
         
+        ################# CODE ADD ################
+        parser.add_argument('--denoised_images_output_dir', type=str, default='',
+                          help='path where denoised images generate will be saved')
+        ################# CODE ADD ################
+        
         return parser
 
     def set_model(self):
@@ -45,6 +55,10 @@ class corediff(TrainTask):
         self.T = opt.T
         self.sampling_routine = opt.sampling_routine
         self.context = opt.context
+
+        ################# CODE ADD ################
+        self.denoised_images_output_dir = os.path.join(opt.denoised_images_output_dir, "denoised_imgs")
+        ################# CODE ADD ################
         
         denoise_fn = Network(in_channels=opt.in_channels, context=opt.context)
 
@@ -119,6 +133,12 @@ class corediff(TrainTask):
     def test(self, n_iter):
         opt = self.opt
         self.ema_model.eval()
+ 
+        ################# CODE ADD ################
+        if self.denoised_images_output_dir != '':
+            i=0
+            os.makedirs(self.denoised_images_output_dir)
+        ############################################
 
         psnr, ssim, rmse = 0., 0., 0.
         for low_dose, full_dose in tqdm.tqdm(self.test_loader, desc='test'):
@@ -133,14 +153,42 @@ class corediff(TrainTask):
                 start_adjust_iter=opt.start_adjust_iter,
             )
 
+            ################# CODE ADD ################
+            if self.denoised_images_output_dir != '':
+              gen_full_dose_npy = gen_full_dose.cpu().numpy().squeeze()
+              # Transform in uint16 the generated img to store it 
+              np.save(
+                os.path.join(self.denoised_images_output_dir, f'denoised_{i:04d}'),
+                np.array(
+                  exposure.rescale_intensity(
+                    gen_full_dose_npy,
+                    in_range=(0.0,1.0),
+                    out_range=(0,4095)
+                  ),
+                  dtype='uint16'
+                )
+              )
+            ############################################
+            #print(f"full dose | MIN {full_dose.min()} | MAX {full_dose.max()}")
+            #print(f"gen full dose | MIN {gen_full_dose.min()} | MAX {gen_full_dose.max()}")
+
             full_dose = self.transfer_calculate_window(full_dose)
             gen_full_dose = self.transfer_calculate_window(gen_full_dose)
-        
+
+            #print(f"full dose | MIN {full_dose.min()} | MAX {full_dose.max()}")
+            #print(f"gen full dose | MIN {gen_full_dose.min()} | MAX {gen_full_dose.max()}")
+
             data_range = full_dose.max() - full_dose.min()
             psnr_score, ssim_score, rmse_score = compute_measure(full_dose, gen_full_dose, data_range)
+            print(psnr_score, ssim_score, rmse_score)
             psnr += psnr_score / len(self.test_loader)
             ssim += ssim_score / len(self.test_loader)
             rmse += rmse_score / len(self.test_loader)
+
+            ################# CODE ADD ################
+            if self.denoised_images_output_dir != '':
+                i += 1
+            ############################################
 
         self.logger.msg([psnr, ssim, rmse], n_iter)
 

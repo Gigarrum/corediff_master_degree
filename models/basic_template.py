@@ -73,6 +73,14 @@ class TrainTask(object):
         parser.add_argument('--dose', type=int, default=5,
                             help='dose% data use for training and testing')
 
+        ################# CODE ADD ################
+        parser.add_argument('--context_mock_strategy_for_1st_and_last_frames', type=str, default=None,
+                            help='Defines which strategy will be used to mock 1st and last frames context.'+
+                            'Valid values: "copy_frame" (Mock missing context frame with a copy of the frame),'+
+                            '"copy_neighbor" (WMock missing context frame with a copy of existing neighbor frame).'
+                            )
+        ################# CODE ADD ################
+
         return parser
 
     @staticmethod
@@ -112,7 +120,10 @@ class TrainTask(object):
             dataset=opt.test_dataset,
             test_id=opt.test_id,
             dose=opt.dose,
-            context=opt.context
+            context=opt.context,
+            ################## CODE ADD ################
+            context_mock_strategy_for_1st_and_last_frames=opt.context_mock_strategy_for_1st_and_last_frames
+            ################# CODE ADD ################
         )
         test_loader = torch.utils.data.DataLoader(
             dataset=test_dataset,

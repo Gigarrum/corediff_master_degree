@@ -7,11 +7,46 @@ import torch
 from functools import partial
 import torch.nn.functional as F
 
+################# CODE ADD ################
+def mock_first_and_last_frames_context(patient_list, context_mock_strategy):
+    "The goal of this method is to Mock a context for the 1st and last frame"
+
+    if context_mock_strategy == 'copy_frame':
+      patient_list.insert(0, patient_list[0])
+      # DO NOT USE -1 in the insertion index. It works differently than [-1]
+      patient_list.insert(len(patient_list), patient_list[-1]) 
+    elif context_mock_strategy == 'copy_neighbor':
+      patient_list.insert(0, patient_list[1])
+      # DO NOT USE -1 in the insertion index. It works differently than [-1]
+      patient_list.insert(len(patient_list), patient_list[-2])
+    else:
+      print("No Context mock strategy was chosen for 1st and last frame! They will be ignored during denoise!")
+      return patient_list
+
+    # DEBUG prints
+    print("path [0]: ", patient_list[0])
+    print("path [1]: ",patient_list[1])
+    print("path [2]: ",patient_list[2])
+    print("path [3]: ",patient_list[3])
+    print("path [4]: ",patient_list[4])
+    print("path [-5]: ",patient_list[-5])
+    print("path [-4]: ",patient_list[-4])
+    print("path [-3]: ",patient_list[-3])
+    print("path [-2]: ",patient_list[-2])
+    print("path [-1]: ",patient_list[-1])
+    
+    return patient_list
+################# CODE ADD ################
+
 
 class CTDataset(Dataset):
-    def __init__(self, dataset, mode, test_id=9, dose=5, context=True):
+    def __init__(self, dataset, mode, test_id=9, dose=5, context=True, context_mock_strategy_for_1st_and_last_frames=None):
         self.mode = mode
         self.context = context
+        ################# CODE ADD ################
+        # The parameter was also ADD to __init__() params
+        self.context_mock_strategy_for_1st_and_last_frames = context_mock_strategy_for_1st_and_last_frames
+        ################# CODE ADD ################
         print(dataset)
 
         if dataset in ['mayo_2016_sim', 'mayo_2016']:
@@ -29,6 +64,12 @@ class CTDataset(Dataset):
             patient_lists = []
             for ind, id in enumerate(patient_ids):
                 patient_list = sorted(glob(osp.join(data_root, ('L{:03d}_target_'.format(id) + '*_img.npy'))))
+
+                ################# CODE ADD ################
+                if context:
+                    patient_list = mock_first_and_last_frames_context(patient_list, context_mock_strategy_for_1st_and_last_frames)
+                ################# CODE ADD ################
+                
                 patient_lists = patient_lists + patient_list[1:len(patient_list) - 1]
             base_target = patient_lists
 
@@ -36,6 +77,10 @@ class CTDataset(Dataset):
             for ind, id in enumerate(patient_ids):
                 patient_list = sorted(glob(osp.join(data_root, ('L{:03d}_{}_'.format(id, dose) + '*_img.npy'))))
                 if context:
+                    ################# CODE ADD ################
+                    patient_list = mock_first_and_last_frames_context(patient_list, context_mock_strategy_for_1st_and_last_frames)
+                    ################# CODE ADD ################
+
                     cat_patient_list = []
                     for i in range(1, len(patient_list) - 1):
                         patient_path = ''
