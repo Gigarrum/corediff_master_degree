@@ -42,6 +42,8 @@ class corediff(TrainTask):
         ################# CODE ADD ################
         parser.add_argument('--denoised_images_output_dir', type=str, default='',
                           help='path where denoised images generate will be saved')
+        parser.add_argument('--osl_weights_output_dir', type=str, default='',
+                          help='path where model weights trained using the osl framework will be saved')
         ################# CODE ADD ################
         
         return parser
@@ -290,23 +292,37 @@ class corediff(TrainTask):
         fake_imgs = self.transfer_display_window(fake_imgs)
         self.logger.save_image(torchvision.utils.make_grid(fake_imgs, nrow=4), test_iter,
                                'test_opt_' + opt.test_dataset + '_{}_{}'.format(self.dose, opt.index))
+        
+        ################# CODE ADD ################
+        weights_path = opt.osl_weights_output_dir
+        os.makedirs(weights_path, exist_ok=True)
+        ################# CODE ADD ################
 
+        ################# CODE CHANGED ################
         if opt.unpair:
-            filename = './weights/unpair_weights_' + opt.test_dataset + '_{}_{}.npy'.format(self.dose, opt.index)
+            filename = 'unpair_weights_' + opt.test_dataset + '_{}_{}.npy'.format(self.dose, opt.index)
         else:
-            filename = './weights/weights_' + opt.test_dataset + '_{}_{}.npy'.format(self.dose, opt.index)
-        np.save(filename, weights.detach().cpu().squeeze().numpy())
+            filename = 'weights_' + opt.test_dataset + '_{}_{}.npy'.format(self.dose, opt.index)
+        
+        np.save(os.path.join(weights_path, filename), weights.detach().cpu().squeeze().numpy())
+        ################# CODE CHANGED ################
 
 
     def test_osl_framework(self, test_iter):
         opt = self.opt
         self.ema_model.eval()
 
+        ################# CODE ADD ################
+        weights_path = opt.osl_weights_output_dir
+        ################# CODE ADD ################
+
+        ################# CODE CHANGED ################
         if opt.unpair:
-            filename = './weights/unpair_weights_' + opt.test_dataset + '_{}_{}.npy'.format(self.dose, opt.index)
+            filename = 'unpair_weights_' + opt.test_dataset + '_{}_{}.npy'.format(self.dose, opt.index)
         else:
-            filename = './weights/weights_' + opt.test_dataset + '_{}_{}.npy'.format(self.dose, opt.index)
-        weights = np.load(filename)
+            filename = 'weights_' + opt.test_dataset + '_{}_{}.npy'.format(self.dose, opt.index)
+        weights = np.load(os.path.join(weights_path, filename))
+        ################# CODE CHANGED ################
         print(weights)
         weights = torch.from_numpy(weights).unsqueeze(1).unsqueeze(2).unsqueeze(0).cuda()
 
@@ -348,7 +364,6 @@ class corediff(TrainTask):
 
         self.logger.msg([psnr_ori, ssim_ori, rmse_ori], test_iter)
         self.logger.msg([psnr_opt, ssim_opt, rmse_opt], test_iter)
-
 
 
     def get_patch(self, input_img, target_img, patch_size=256, stride=32):
