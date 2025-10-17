@@ -9,8 +9,9 @@ python main.py\
  --only_adjust_two_step\
  --test_iter 150000\
  --mode train_osl_framework\
- --osl_max_iter 100\
+ --osl_max_iter 3001\
  --osl_batch_size 8\
  --patch_size 256 \
  --num_workers 2 \
- --osl_weights_output_dir /home/paulo-mausbach/Documents/personal/master_degree/master-degree/corediff_osl_pretrained_weights
+ --osl_weights_output_dir /home/paulo-mausbach/Documents/personal/master_degree/master-degree/corediff_osl_pretrained_weights \
+ --index 200 # Define which slice index will be used on OSL framework (It was chosen due to all the characteristics the image has)
