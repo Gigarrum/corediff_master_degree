@@ -251,8 +251,16 @@ class CTDataset(Dataset):
         if self.dataset == "2detect":
             import imageio
             data_load_method = imageio.imread
+            translation=0
+            MIN_B = 0
+            MAX_B = 1000
         else:
             data_load_method = np.load
+            # This parameters just replicate original parameters set by author to normalize_ method
+            translation=-1024
+            MIN_B=-1024
+            MAX_B=3072
+            
         ################# CODE ADD ################
 
         ################# CODE CHANGED ################
@@ -265,18 +273,18 @@ class CTDataset(Dataset):
         else:
             input = data_load_method(input)[np.newaxis, ...].astype(np.float32) #(1, 512, 512)
         target = data_load_method(target)[np.newaxis,...].astype(np.float32) #(1, 512, 512)
-        ################ CODE CHANGED ################
         
-        input = self.normalize_(input)
-        target = self.normalize_(target)
+        input = self.normalize_(input, translation, MIN_B, MAX_B)
+        target = self.normalize_(target, translation, MIN_B, MAX_B)
+        ################ CODE CHANGED ################
 
         return input, target
 
     def __len__(self):
         return len(self.target)
 
-    def normalize_(self, img, MIN_B=-1024, MAX_B=3072):
-        img = img - 1024
+    def normalize_(self, img, translation, MIN_B, MAX_B):
+        img = img + translation
         img[img < MIN_B] = MIN_B
         img[img > MAX_B] = MAX_B
         img = (img - MIN_B) / (MAX_B - MIN_B)
