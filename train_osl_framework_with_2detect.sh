@@ -1,6 +1,6 @@
 python main.py\
  --model_name corediff\
- --run_name test_training_osl_framework\
+ --run_name test_training_osl_framework_correct_normalization\
  --train_dataset 2detect\
  --test_dataset 2detect\
  --test_batch_size 1\
