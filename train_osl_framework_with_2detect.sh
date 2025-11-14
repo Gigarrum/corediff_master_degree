@@ -1,0 +1,17 @@
+python main.py\
+ --model_name corediff\
+ --run_name test_training_osl_framework_correct_normalization\
+ --train_dataset 2detect\
+ --test_dataset 2detect\
+ --test_batch_size 1\
+ --test_id 9\
+ --context\
+ --only_adjust_two_step\
+ --test_iter 150000\
+ --mode train_osl_framework\
+ --osl_max_iter 3001\
+ --osl_batch_size 8\
+ --patch_size 256 \
+ --num_workers 2 \
+ --osl_weights_output_dir /home/paulo-mausbach/Documents/personal/master_degree/master-degree/corediff_osl_pretrained_weights \
+ --index 200 # Define which slice index will be used on OSL framework (It was chosen due to all the characteristics the image has)
