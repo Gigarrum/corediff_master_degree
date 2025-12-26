@@ -38,6 +38,32 @@ def mock_first_and_last_frames_context(slices_list, context_mock_strategy):
     return slices_list
 ################# CODE ADD ################
 
+def crop_pair(img1, img2, crop_size, crop_strategy):
+    """
+    Apply the same crop to two images.
+
+    Args:
+        img1, img2: numpy arrays with shape (C, H, W)
+        crop_size: int
+        random: bool
+
+    Returns:
+        cropped_img1, cropped_img2
+    """
+    assert img1.shape[-2:] == img2.shape[-2:], "Images must have same spatial size"
+    _, H, W = img1.shape
+    if H == crop_size and W == crop_size:
+        return img1, img2
+    if crop_strategy == 'random':
+        top = np.random.randint(0, H - crop_size + 1)
+        left = np.random.randint(0, W - crop_size + 1)
+    elif crop_strategy == 'center':
+        top = (H - crop_size) // 2
+        left = (W - crop_size) // 2
+    else:
+        raise Exception(f"Crop strategy {crop_strategy} not supported!")
+    return img1[:, top:top + crop_size, left:left + crop_size], img2[:, top:top + crop_size, left:left + crop_size]
+
 
 class CTDataset(Dataset):
     def __init__(self, dataset, mode, test_id=9, dose=5, context=True, context_mock_strategy_for_1st_and_last_frames=None):
@@ -167,7 +193,7 @@ class CTDataset(Dataset):
         ################# CODE ADD ################
 
         if dataset == '2detect':
-            data_root = 'data/2DeteCT'
+            data_root = '../data/2DeteCT'
             
             # Range of indexes related each subsample from 2DETECT
             # MIX_2 was currently chosen for train and all other for tests
@@ -274,9 +300,20 @@ class CTDataset(Dataset):
             input = data_load_method(input)[np.newaxis, ...].astype(np.float32) #(1, 512, 512)
         target = data_load_method(target)[np.newaxis,...].astype(np.float32) #(1, 512, 512)
         
+        print("\n==================\n",input.shape, target.shape,"\n==================\n")
+
         input = self.normalize_(input, translation, MIN_B, MAX_B)
         target = self.normalize_(target, translation, MIN_B, MAX_B)
         ################ CODE CHANGED ################
+
+        ################# CODE ADD ################
+        # Check if image need to be croped
+        if self.mode == 'train' or self.mode == 'train_osl_framework':
+            self.crop_strategy = 'random'
+        else:
+            self.crop_strategy = 'center'
+
+        input, target = crop_pair(input, target, crop_size=512, crop_strategy=self.crop_strategy)
 
         return input, target
 
