@@ -167,7 +167,7 @@ class CTDataset(Dataset):
         ################# CODE ADD ################
 
         if dataset == '2detect':
-            data_root = '../2DeteCT'
+            data_root = 'data/2DeteCT'
             
             # Range of indexes related each subsample from 2DETECT
             # MIX_2 was currently chosen for train and all other for tests
