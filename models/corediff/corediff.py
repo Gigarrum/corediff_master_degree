@@ -15,7 +15,7 @@ from .corediff_wrapper import Network, WeightNet
 from .diffusion_modules import Diffusion
 
 import numpy as np
-import wandb
+#import wandb
 
 ################# CODE ADD ################
 from skimage import exposure
@@ -59,7 +59,10 @@ class corediff(TrainTask):
         self.context = opt.context
 
         ################# CODE ADD ################
-        self.denoised_images_output_dir = os.path.join(opt.denoised_images_output_dir, "denoised_imgs")
+        if opt.denoised_images_output_dir != '':
+            self.denoised_images_output_dir = os.path.join(opt.denoised_images_output_dir, "denoised_imgs")
+        else:
+            self.denoised_images_output_dir = opt.denoised_images_output_dir
         ################# CODE ADD ################
         
         denoise_fn = Network(in_channels=opt.in_channels, context=opt.context)

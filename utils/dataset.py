@@ -321,7 +321,7 @@ class CTDataset(Dataset):
             self.crop_strategy = 'random'
         else:
             self.crop_strategy = 'center'
-
+        
         input, target = crop_pair(input, target, crop_size=512, crop_strategy=self.crop_strategy)
         ################# CODE ADD ################
 
