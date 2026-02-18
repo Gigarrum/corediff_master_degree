@@ -110,7 +110,7 @@ class corediff(TrainTask):
         if opt.wandb:
             if n_iter == opt.resume_iter + 1:
                 wandb.init(project="your wandb project name")
-
+                
         self.optimizer.step()
         self.optimizer.zero_grad()
 
@@ -120,6 +120,11 @@ class corediff(TrainTask):
 
         if opt.wandb:
             wandb.log({'epoch': n_iter, 'loss': loss})
+        ##### CODE ADD #####
+        else:
+            # Log locally 
+            self.logger.log_train_loss(epoch=n_iter, train_loss=loss)
+        ##### CODE ADD #####
 
         if n_iter % self.update_ema_iter == 0:
             self.step_ema(n_iter)
@@ -146,8 +151,11 @@ class corediff(TrainTask):
             #print(f"full dose | MIN {full_dose.min()} | MAX {full_dose.max()}")
             #print(f"gen full dose | MIN {gen_full_dose.min()} | MAX {gen_full_dose.max()}")
 
-            full_dose = self.transfer_calculate_window(full_dose)
-            gen_full_dose = self.transfer_calculate_window(gen_full_dose)
+            ##### CODE REMOVED #####
+            # I WANT METRICS DURING TRAIN TO BE TAKEN RELATED TO ORIGINAL DATA SCALE, NOT THE DISPLAY SCALE.
+            #full_dose = self.transfer_calculate_window(full_dose)
+            #gen_full_dose = self.transfer_calculate_window(gen_full_dose)
+            ##### CODE REMOVED #####
 
             #print(f"full dose | MIN {full_dose.min()} | MAX {full_dose.max()}")
             #print(f"gen full dose | MIN {gen_full_dose.min()} | MAX {gen_full_dose.max()}")
@@ -163,6 +171,11 @@ class corediff(TrainTask):
 
         if opt.wandb:
             wandb.log({'epoch': n_iter, 'PSNR': psnr, 'SSIM': ssim, 'RMSE': rmse})
+        ##### CODE ADD #####
+        else:
+            # Log locally 
+            self.logger.log_test_metrics(epoch=n_iter, rmse=rmse, psnr=psnr, ssim=ssim)
+        ##### CODE ADD #####
 
 
     @torch.no_grad()

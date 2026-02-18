@@ -29,6 +29,8 @@ class LoggerX(object):
         self.log_save_dir = osp.join(save_root, 'save_logs')
         os.makedirs(self.models_save_dir, exist_ok=True)
         os.makedirs(self.images_save_dir, exist_ok=True)
+        self.train_log_file = osp.join(self.log_save_dir, "loss_log.csv")
+        self.validation_log_file = osp.join(self.log_save_dir, "validation_log.csv")
         self._modules = []
         self._module_names = []
         self.world_size = 1
@@ -38,7 +40,7 @@ class LoggerX(object):
         # Create CSV files to store training and testing logs
         os.makedirs(self.log_save_dir, exist_ok=True)
         self._initialize_csv(self.train_log_file, ['epoch', 'train_loss'])
-        self._initialize_csv(self.test_log_file, ['epoch', 'psnr', 'ssim'])
+        self._initialize_csv(self.validation_log_file, ['epoch', 'rmse', 'psnr', 'ssim'])
         ####### CODE ADD #######
 
     @property
@@ -69,12 +71,12 @@ class LoggerX(object):
             writer = csv.writer(file)
             writer.writerow([epoch, train_loss])
 
-    def log_test_metrics(self, epoch, psnr, ssim):
+    def log_test_metrics(self, epoch, rmse, psnr, ssim):
         if self.local_rank != 0:
             return
-        with open(self.test_log_file, mode='a', newline='') as file:
+        with open(self.validation_log_file, mode='a', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow([epoch, psnr, ssim])
+            writer.writerow([epoch, rmse, psnr, ssim])
 ####### CODE ADD #######
 
     def checkpoints(self, epoch):
