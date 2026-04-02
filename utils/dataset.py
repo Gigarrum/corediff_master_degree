@@ -66,13 +66,14 @@ def crop_pair(img1, img2, crop_size, crop_strategy):
 
 
 class CTDataset(Dataset):
-    def __init__(self, dataset, mode, test_id=9, dose=5, context=True, context_mock_strategy_for_1st_and_last_frames=None):
+    def __init__(self, dataset, mode, test_id=9, dose=5, context=True, crop_strategy=None, context_mock_strategy_for_1st_and_last_frames=None):
         self.mode = mode
         self.context = context
         
         ################# CODE ADD ################
         # The parameter was also ADD to __init__() params
         self.context_mock_strategy_for_1st_and_last_frames = context_mock_strategy_for_1st_and_last_frames
+        self.crop_strategy = crop_strategy
         self.dataset = dataset
         ################# CODE ADD ################
         print(dataset)
@@ -317,10 +318,10 @@ class CTDataset(Dataset):
         target = self.normalize_(target, translation, MIN_B_TARGET, MAX_B_TARGET)
         
         # Check if image need to be croped
-        if self.mode == 'train' or self.mode == 'train_osl_framework':
-            self.crop_strategy = 'random'
-        else:
-            self.crop_strategy = 'center'
+        #if self.mode == 'train' or self.mode == 'train_osl_framework':
+        #    self.crop_strategy = 'random'
+        #else:
+        #    self.crop_strategy = 'center'
         
         input, target = crop_pair(input, target, crop_size=512, crop_strategy=self.crop_strategy)
         ################# CODE ADD ################
@@ -340,13 +341,13 @@ class CTDataset(Dataset):
 
 
 dataset_dict = {
-    'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True), # THIS IS THE DATASET USED FOR TRAINING, NO MATTER THE PARAM PASSED!!!!
+    'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True, crop_strategy="center"), # THIS IS THE DATASET USED FOR TRAINING, NO MATTER THE PARAM PASSED!!!!
     'mayo_2016_sim': partial(CTDataset, dataset='mayo_2016_sim', mode='test', test_id=9, dose=5, context=True),
     'mayo_2016': partial(CTDataset, dataset='mayo_2016', mode='test', test_id=9, dose=25, context=True),
     'mayo_2020': partial(CTDataset, dataset='mayo_2020', mode='test', test_id=None, dose=None, context=True),
     'piglet': partial(CTDataset, dataset='piglet', mode='test', test_id=None, dose=None, context=True),
     'phantom': partial(CTDataset, dataset='phantom', mode='test', test_id=None, dose=108, context=True),
     ################ CODE ADD ################
-    '2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True)  
+    '2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True, crop_strategy="center")  
     ################ CODE ADD ################
 }
