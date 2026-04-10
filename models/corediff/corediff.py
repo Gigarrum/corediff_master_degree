@@ -55,12 +55,16 @@ class corediff(TrainTask):
         self.T = opt.T
         self.sampling_routine = opt.sampling_routine
         self.context = opt.context
+
+        ################# CODE ADD ################
+        self.image_size = opt.image_size
+        ################# CODE ADD ################
         
         denoise_fn = Network(in_channels=opt.in_channels, context=opt.context)
 
         model = Diffusion(
             denoise_fn=denoise_fn,
-            image_size=512,
+            image_size=self.image_size,
             timesteps=opt.T,
             context=opt.context
         ).cuda()
