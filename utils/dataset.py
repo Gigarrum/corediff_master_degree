@@ -66,7 +66,7 @@ def crop_pair(img1, img2, crop_size, crop_strategy):
 
 
 class CTDataset(Dataset):
-    def __init__(self, dataset, mode, test_id=9, dose=5, context=True, crop_strategy=None, context_mock_strategy_for_1st_and_last_frames=None):
+    def __init__(self, dataset, mode, test_id=9, dose=5, context=True, crop_strategy=None, context_mock_strategy_for_1st_and_last_frames=None, normalization_strategy='mean_std'):
         self.mode = mode
         self.context = context
         
@@ -75,6 +75,7 @@ class CTDataset(Dataset):
         self.context_mock_strategy_for_1st_and_last_frames = context_mock_strategy_for_1st_and_last_frames
         self.crop_strategy = crop_strategy
         self.dataset = dataset
+        self.normalization_strategy = normalization_strategy
         ################# CODE ADD ################
         print(dataset)
 
@@ -218,13 +219,158 @@ class CTDataset(Dataset):
                 'FLESH_FIG_OOD_MIX_3': range(6321, 6370 + 1),
             }
 
+            sample_ndct_mean_std_mapping = {
+                'MIX_1': {
+                    'mean': 0.0006538797169923782,
+                    'std': 0.0009740228415466845
+                    },
+                'MIX_2': {
+                    'mean': 0.0006392895593307912,
+                    'std': 0.0009253055322915316
+                    },
+                'MIX_3': {
+                    'mean': 0.0006852527731098235,
+                    'std': 0.0009844953892752528
+                    },
+                'FIG_OOD_PURE': {
+                    'mean': 0.0006105180364102125,
+                    'std': 0.0007530362927354872
+                    },
+                'ALMOND_OOD_PURE': {
+                    'mean': 0.0004920786595903337,
+                    'std': 0.000580836262088269
+                    },
+                'BANANA_OOD_PURE': {
+                    'mean': 0.000435380672570318,
+                    'std': 0.0005090352497063577
+                    },
+                'RAISIN_OOD_PURE': {
+                    'mean': 0.00045652143307961524,
+                    'std': 0.0006079224986024201
+                    },
+                'WALNUT_OOD_PURE': {
+                    'mean': 0.0004319391446188092,
+                    'std': 0.0005231823888607323
+                    },
+                'COFFEE_BEANS_OOD_PURE': {
+                    'mean': 0.00038193189539015293,
+                    'std': 0.0003958650049753487
+                    },
+                'LAVA_STONE_OOD_PURE': {
+                    'mean': 0.0006710302550345659,
+                    'std': 0.0013717758702114224
+                    },
+                'MIX_3_OOD_NOISE': {
+                    'mean': 0.0007378465961664915,
+                    'std': 0.0012105517089366913
+                    },
+                'TITANIUM_PROSTHESES_SCREWS_OOD_MIX_3': {
+                    'mean': 0.0007924546371214092,
+                    'std': 0.001340771559625864
+                    },
+                'PEANUT_OOD_MIX_3': {
+                    'mean': 0.0007109223515726626,
+                    'std': 0.00100797472987324
+                    },
+                'PISTACHIO_OOD_MIX_3': {
+                    'mean': 0.000727855833247304,
+                    'std': 0.0009698904468677938
+                    },
+                'HAZELNUT_OOD_MIX_3': {
+                    'mean': 0.0007273655501194298,
+                    'std': 0.0009698904468677938
+                    },
+                'GRAPE_OOD_MIX_3': {
+                    'mean': 0.0007468361291103065,
+                    'std': 0.0009705426055006683
+                    },
+                'FLESH_FIG_OOD_MIX_3': {
+                    'mean': 0.0006862918962724507,
+                    'std': 0.000911360839381814
+                    }
+            }
+            
+            sample_ldct_mean_std_mapping = {
+                'MIX_1': {
+                    'mean': 0.0007928369450382888,
+                    'std': 0.0014398089842870831
+                    },
+                'MIX_2': {
+                    'mean': 0.0007173863705247641,
+                    'std': 0.0012580337934195995
+                    },
+                'MIX_3': {
+                    'mean': 0.0007028057589195669,
+                    'std': 0.0011917755473405123
+                    },
+                'FIG_OOD_PURE': {
+                    'mean': 0.0007410991238430142,
+                    'std': 0.0010316030820831656
+                    },
+                'ALMOND_OOD_PURE': {
+                    'mean': 0.000590855663176626,
+                    'std': 0.00078888691496104
+                    },
+                'BANANA_OOD_PURE': {
+                    'mean': 0.0005239111487753689,
+                    'std': 0.0007047480321489275
+                    },
+                'RAISIN_OOD_PURE': {
+                    'mean': 0.0005526128807105124,
+                    'std': 0.0008370787836611271
+                    },
+                'WALNUT_OOD_PURE': {
+                    'mean': 0.0005231364048086107,
+                    'std': 0.0007290175999514759
+                    },
+                'COFFEE_BEANS_OOD_PURE': {
+                    'mean': 0.0004596579528879374,
+                    'std': 0.0005764670786447823
+                    },
+                'LAVA_STONE_OOD_PURE': {
+                    'mean': 0.0007996205822564662,
+                    'std': 0.001938883913680911
+                    },
+                'MIX_3_OOD_NOISE': {
+                    'mean': 0.0007307335617952049,
+                    'std': 0.001552431844174862
+                    },
+                'TITANIUM_PROSTHESES_SCREWS_OOD_MIX_3': {
+                    'mean': 0.0008188736974261701,
+                    'std': 0.0015750402817502618
+                    },
+                'PEANUT_OOD_MIX_3': {
+                    'mean': 0.0007324786274693906,
+                    'std': 0.001219474826939404
+                    },
+                'PISTACHIO_OOD_MIX_3': {
+                    'mean': 0.0007548062712885439,
+                    'std': 0.0012305786367505789
+                    },
+                'HAZELNUT_OOD_MIX_3': {
+                    'mean': 0.0007491590222343802,
+                    'std': 0.0011984084267169237
+                    },
+                'GRAPE_OOD_MIX_3': {
+                    'mean': 0.0007696138345636427,
+                    'std': 0.0012076576240360737
+                    },
+                'FLESH_FIG_OOD_MIX_3': {
+                    'mean': 0.0007145455456338823,
+                    'std': 0.001149201299995184
+                    }
+            }
+            
+
             train_samples = ['MIX_2']
+            mean_std_mapping_per_ndct_slice_idx = {}
+            mean_std_mapping_per_ldct_slice_idx = {}
 
             if mode == 'train':
                 sample_ids = train_samples
             elif mode == 'test':
                 sample_ids = [sample_name for sample_name in sample_mapping.keys() if sample_name not in [train_samples]]
-
+            
             samples_slices_paths_lists = []
             for sample_id in sample_ids:
                 sample_slices_paths = []
@@ -233,9 +379,13 @@ class CTDataset(Dataset):
                     slice_path = os.path.join(data_root, slice_dir_name, "mode2", "reconstruction.tif")
                     sample_slices_paths.append(slice_path)
 
+                    # Map NDCT slice_idx to its respective sample mean/std
+                    mean_std_mapping_per_ndct_slice_idx[slice_idx] = sample_ndct_mean_std_mapping[sample_id]
+
+                # PS: context don't need mean/std mapping as they are always part of the same subsample
                 if context:
                     sample_slices_paths = mock_first_and_last_frames_context(sample_slices_paths, context_mock_strategy_for_1st_and_last_frames)
-                    
+                   
                     samples_slices_paths_lists = samples_slices_paths_lists + sample_slices_paths[1:len(sample_slices_paths) - 1]
             base_target = samples_slices_paths_lists
 
@@ -247,6 +397,10 @@ class CTDataset(Dataset):
                     slice_path = os.path.join(data_root, slice_dir_name, "mode1", "reconstruction.tif")
                     sample_slices_paths.append(slice_path)
 
+                    # Map slice_idx to its respective sample mean/std
+                    mean_std_mapping_per_ldct_slice_idx[slice_idx] = sample_ldct_mean_std_mapping[sample_id]
+
+                # PS: context don't need mean/std mapping as they are always part of the same subsample
                 if context:
 
                     sample_slices_paths = mock_first_and_last_frames_context(sample_slices_paths, context_mock_strategy_for_1st_and_last_frames)
@@ -299,12 +453,29 @@ class CTDataset(Dataset):
         ################ CODE CHANGED ################
 
         ################# CODE ADD ################
-        if self.dataset == "2detect":
-            translation = 0
-            MIN_B_INPUT = input.min()
-            MAX_B_INPUT = input.max()
-            MIN_B_TARGET = target.min() 
-            MAX_B_TARGET = target.max()
+        if self.dataset == "2detect" 
+            if self.normalization_strategy == "min_max":
+                translation = 0
+                MIN_B_INPUT = input.min()
+                MAX_B_INPUT = input.max()
+                MIN_B_TARGET = target.min() 
+                MAX_B_TARGET = target.max()
+
+                # Apply min/max normalization using slice local min/max
+                input = self.normalize_(input, translation, MIN_B_INPUT, MAX_B_INPUT)
+                target = self.normalize_(target, translation, MIN_B_TARGET, MAX_B_TARGET)
+            
+            elif self.normalization_strategy == "mean_std":
+                ndct_mean = mean_std_mapping_per_ndct_slice_idx[index]['mean']
+                ndct_std = mean_std_mapping_per_ndct_slice_idx[index]['std']
+                ldct_mean = mean_std_mapping_per_ldct_slice_idx[index]['mean']
+                ldct_std = mean_std_mapping_per_ldct_slice_idx[index]['std']
+
+                # Apply mean/std normalization using subsample mean/std values
+                input = (input - ldct_mean) / ldct_std
+                target = (target - ndct_mean) / ndct_std
+            else:
+                raise Exception("Normalization strategy ")
         else:
             # This parameters just replicate original parameters set by author to normalize_ method
             translation = -1024
@@ -313,9 +484,12 @@ class CTDataset(Dataset):
             MIN_B_TARGET = -1024
             MAX_B_TARGET = 3072
 
+            # Apply min/max normalization using HU window used on CoreDiff original paper
+            input = self.normalize_(input, translation, MIN_B_INPUT, MAX_B_INPUT)
+            target = self.normalize_(target, translation, MIN_B_TARGET, MAX_B_TARGET)
 
-        input = self.normalize_(input, translation, MIN_B_INPUT, MAX_B_INPUT)
-        target = self.normalize_(target, translation, MIN_B_TARGET, MAX_B_TARGET)
+
+       
         
         # Check if image need to be croped
         #if self.mode == 'train' or self.mode == 'train_osl_framework':
@@ -342,7 +516,7 @@ class CTDataset(Dataset):
 
 dataset_dict = {
     #'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True, crop_strategy="center", context_mock_strategy_for_1st_and_last_frames="copy_neighbor"), # THIS IS THE DATASET USED FOR TRAINING, NO MATTER THE PARAM PASSED!!!!
-    'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True, crop_strategy=None,context_mock_strategy_for_1st_and_last_frames="copy_neighbor"),
+    'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True, crop_strategy=None,context_mock_strategy_for_1st_and_last_frames="copy_neighbor",normalization_strategy="mean_std"),
     'mayo_2016_sim': partial(CTDataset, dataset='mayo_2016_sim', mode='test', test_id=9, dose=5, context=True),
     'mayo_2016': partial(CTDataset, dataset='mayo_2016', mode='test', test_id=9, dose=25, context=True),
     'mayo_2020': partial(CTDataset, dataset='mayo_2020', mode='test', test_id=None, dose=None, context=True),
@@ -350,6 +524,6 @@ dataset_dict = {
     'phantom': partial(CTDataset, dataset='phantom', mode='test', test_id=None, dose=108, context=True),
     ################ CODE ADD ################
     #'2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True, crop_strategy="center", context_mock_strategy_for_1st_and_last_frames="copy_neighbor")
-    '2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True, crop_strategy=None, context_mock_strategy_for_1st_and_last_frames="copy_neighbor")
+    '2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True, crop_strategy=None, context_mock_strategy_for_1st_and_last_frames="copy_neighbor",normalization_strategy="mean_std")
     ################ CODE ADD ################
 }
