@@ -100,6 +100,9 @@ class TrainTask(object):
                 test_id=opt.test_id,
                 dose=opt.dose,
                 context=opt.context,
+                ################## CODE ADD ################
+                context_mock_strategy_for_1st_and_last_frames=opt.context_mock_strategy_for_1st_and_last_frames
+                ################# CODE ADD ################
             )
             train_sampler = RandomSampler(dataset=train_dataset, batch_size=opt.batch_size,
                                           num_iter=opt.max_iter,
