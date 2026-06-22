@@ -67,7 +67,7 @@ def crop_pair(img1, img2, crop_size, crop_strategy, rng_generator=None):
 
 
 class CTDataset(Dataset):
-    def __init__(self, dataset, mode, test_id=9, dose=5, context=True, crop_strategy=None, context_mock_strategy_for_1st_and_last_frames=None, normalization_strategy='mean_std', rng_seed=42):
+    def __init__(self, dataset, mode, test_id=9, dose=5, context=True, crop_strategy=None, context_mock_strategy_for_1st_and_last_frames='copy_neighbor', normalization_strategy='mean_std', rng_seed=42):
         self.mode = mode
         self.context = context
         # Create a single generator withy fixed seed so it allow complete reproducibility when extracting random. This can't be done every time the random_crop is called

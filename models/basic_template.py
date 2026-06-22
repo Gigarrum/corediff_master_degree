@@ -74,7 +74,7 @@ class TrainTask(object):
                             help='dose% data use for training and testing')
 
         ################# CODE ADD ################
-        parser.add_argument('--context_mock_strategy_for_1st_and_last_frames', type=str, default=None,
+        parser.add_argument('--context_mock_strategy_for_1st_and_last_frames', type=str, default='copy_neighbor',
                             help='Defines which strategy will be used to mock 1st and last frames context.'+
                             'Valid values: "copy_frame" (Mock missing context frame with a copy of the frame),'+
                             '"copy_neighbor" (WMock missing context frame with a copy of existing neighbor frame).'
@@ -102,6 +102,7 @@ class TrainTask(object):
                 test_id=opt.test_id,
                 dose=opt.dose,
                 context=opt.context,
+                context_mock_strategy_for_1st_and_last_frames=opt.context_mock_strategy_for_1st_and_last_frames,
                 normalization_strategy=opt.normalization_strategy
             )
             train_sampler = RandomSampler(dataset=train_dataset, batch_size=opt.batch_size,
@@ -124,6 +125,7 @@ class TrainTask(object):
             test_id=opt.test_id,
             dose=opt.dose,
             context=opt.context,
+            context_mock_strategy_for_1st_and_last_frames=opt.context_mock_strategy_for_1st_and_last_frames,
             normalization_strategy=opt.normalization_strategy
         )
         test_loader = torch.utils.data.DataLoader(
