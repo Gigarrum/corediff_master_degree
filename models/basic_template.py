@@ -79,6 +79,8 @@ class TrainTask(object):
                             'Valid values: "copy_frame" (Mock missing context frame with a copy of the frame),'+
                             '"copy_neighbor" (WMock missing context frame with a copy of existing neighbor frame).'
                             )
+        parser.add_argument('--normalization_strategy', type=str, default=None,
+                            help='Define the strategy used for dataset normalization. Valid values are "mean_std" or "min_max"'
         ################# CODE ADD ################
 
         return parser
@@ -100,6 +102,7 @@ class TrainTask(object):
                 test_id=opt.test_id,
                 dose=opt.dose,
                 context=opt.context,
+                normalization_strategy=opt.normalization_strategy
             )
             train_sampler = RandomSampler(dataset=train_dataset, batch_size=opt.batch_size,
                                           num_iter=opt.max_iter,
@@ -121,6 +124,7 @@ class TrainTask(object):
             test_id=opt.test_id,
             dose=opt.dose,
             context=opt.context,
+            normalization_strategy=opt.normalization_strategy
         )
         test_loader = torch.utils.data.DataLoader(
             dataset=test_dataset,

@@ -508,7 +508,7 @@ class CTDataset(Dataset):
 
 dataset_dict = {
     #'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True, crop_strategy="center", context_mock_strategy_for_1st_and_last_frames="copy_neighbor"), # THIS IS THE DATASET USED FOR TRAINING, NO MATTER THE PARAM PASSED!!!!
-    'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True, crop_strategy='random',context_mock_strategy_for_1st_and_last_frames="copy_neighbor",normalization_strategy="mean_std"),
+    'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True, crop_strategy='random',context_mock_strategy_for_1st_and_last_frames="copy_neighbor"),
     'mayo_2016_sim': partial(CTDataset, dataset='mayo_2016_sim', mode='test', test_id=9, dose=5, context=True),
     'mayo_2016': partial(CTDataset, dataset='mayo_2016', mode='test', test_id=9, dose=25, context=True),
     'mayo_2020': partial(CTDataset, dataset='mayo_2020', mode='test', test_id=None, dose=None, context=True),
@@ -516,6 +516,6 @@ dataset_dict = {
     'phantom': partial(CTDataset, dataset='phantom', mode='test', test_id=None, dose=108, context=True),
     ################ CODE ADD ################
     #'2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True, crop_strategy="center", context_mock_strategy_for_1st_and_last_frames="copy_neighbor")
-    '2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True, crop_strategy='random', context_mock_strategy_for_1st_and_last_frames="copy_neighbor",normalization_strategy="mean_std")
+    '2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True, crop_strategy='random', context_mock_strategy_for_1st_and_last_frames="copy_neighbor")
     ################ CODE ADD ################
 }
