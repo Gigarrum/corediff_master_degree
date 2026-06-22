@@ -38,7 +38,7 @@ def mock_first_and_last_frames_context(slices_list, context_mock_strategy):
     return slices_list
 ################# CODE ADD ################
 
-def crop_pair(img1, img2, crop_size, crop_strategy):
+def crop_pair(img1, img2, crop_size, crop_strategy, rng_generator=None):
     """
     Apply the same crop to two images.
 
@@ -51,12 +51,13 @@ def crop_pair(img1, img2, crop_size, crop_strategy):
         cropped_img1, cropped_img2
     """
     assert img1.shape[-2:] == img2.shape[-2:], "Images must have same spatial size"
+
     _, H, W = img1.shape
     if H == crop_size and W == crop_size:
         return img1, img2
     if crop_strategy == 'random':
-        top = np.random.randint(0, H - crop_size + 1)
-        left = np.random.randint(0, W - crop_size + 1)
+        top = rng_generator.integers(0, H - crop_size + 1)
+        left = rng_generator.integers(0, W - crop_size + 1)
     elif crop_strategy == 'center':
         top = (H - crop_size) // 2
         left = (W - crop_size) // 2
@@ -66,9 +67,12 @@ def crop_pair(img1, img2, crop_size, crop_strategy):
 
 
 class CTDataset(Dataset):
-    def __init__(self, dataset, mode, test_id=9, dose=5, context=True, crop_strategy=None, context_mock_strategy_for_1st_and_last_frames=None, normalization_strategy='mean_std'):
+    def __init__(self, dataset, mode, test_id=9, dose=5, context=True, crop_strategy=None, context_mock_strategy_for_1st_and_last_frames=None, normalization_strategy='mean_std', rng_seed=42):
         self.mode = mode
         self.context = context
+        # Create a single generator withy fixed seed so it allow complete reproducibility when extracting random. This can't be done every time the random_crop is called
+        # otherwise it will always reset the random generator and apply the same crop 
+        random_generator= np.random.default_rng(rng_seed)
         
         ################# CODE ADD ################
         # The parameter was also ADD to __init__() params
@@ -363,13 +367,17 @@ class CTDataset(Dataset):
             
 
             train_samples = ['MIX_2']
-            mean_std_mapping_per_ndct_slice_idx = {}
-            mean_std_mapping_per_ldct_slice_idx = {}
+            val_samples = ['MIX_1']
+
+            # WARNING!! IF USING MORE THAN 1 SUBSAMPLE AS TRAIN SET, THIS VALUES MUST BE ADJUSTED. AVERAGING THE MEAN AND STD
+            # FROM BOTH OF THEM IS NOT CORRECT!
+            self.standardization_mean = sample_ldct_mean_std_mapping['MIX_2']['mean']
+            self.standardization_std = sample_ldct_mean_std_mapping['MIX_2']['std']
 
             if mode == 'train':
                 sample_ids = train_samples
             elif mode == 'test':
-                sample_ids = [sample_name for sample_name in sample_mapping.keys() if sample_name not in [train_samples]]
+                sample_ids = val_samples
             
             samples_slices_paths_lists = []
             for sample_id in sample_ids:
@@ -379,10 +387,6 @@ class CTDataset(Dataset):
                     slice_path = os.path.join(data_root, slice_dir_name, "mode2", "reconstruction.tif")
                     sample_slices_paths.append(slice_path)
 
-                    # Map NDCT slice_idx to its respective sample mean/std
-                    mean_std_mapping_per_ndct_slice_idx[slice_idx] = sample_ndct_mean_std_mapping[sample_id]
-
-                # PS: context don't need mean/std mapping as they are always part of the same subsample
                 if context:
                     sample_slices_paths = mock_first_and_last_frames_context(sample_slices_paths, context_mock_strategy_for_1st_and_last_frames)
                    
@@ -397,10 +401,6 @@ class CTDataset(Dataset):
                     slice_path = os.path.join(data_root, slice_dir_name, "mode1", "reconstruction.tif")
                     sample_slices_paths.append(slice_path)
 
-                    # Map slice_idx to its respective sample mean/std
-                    mean_std_mapping_per_ldct_slice_idx[slice_idx] = sample_ldct_mean_std_mapping[sample_id]
-
-                # PS: context don't need mean/std mapping as they are always part of the same subsample
                 if context:
 
                     sample_slices_paths = mock_first_and_last_frames_context(sample_slices_paths, context_mock_strategy_for_1st_and_last_frames)
@@ -453,27 +453,22 @@ class CTDataset(Dataset):
         ################ CODE CHANGED ################
 
         ################# CODE ADD ################
-        if self.dataset == "2detect" 
+        if self.dataset == "2detect": 
             if self.normalization_strategy == "min_max":
                 translation = 0
-                MIN_B_INPUT = input.min()
-                MAX_B_INPUT = input.max()
-                MIN_B_TARGET = target.min() 
-                MAX_B_TARGET = target.max()
+                MIN_INPUT_VAL = input.min()
+                MAX_INPUT_VAL = input.max()
 
                 # Apply min/max normalization using slice local min/max
-                input = self.normalize_(input, translation, MIN_B_INPUT, MAX_B_INPUT)
-                target = self.normalize_(target, translation, MIN_B_TARGET, MAX_B_TARGET)
+                # The same scale must be applied to both images to guarante both standardized in the
+                # same scale
+                input = self.normalize_(input, translation, MIN_INPUT_VAL, MAX_INPUT_VAL)
+                target = self.normalize_(target, translation, MIN_INPUT_VAL, MAX_INPUT_VAL)
             
             elif self.normalization_strategy == "mean_std":
-                ndct_mean = mean_std_mapping_per_ndct_slice_idx[index]['mean']
-                ndct_std = mean_std_mapping_per_ndct_slice_idx[index]['std']
-                ldct_mean = mean_std_mapping_per_ldct_slice_idx[index]['mean']
-                ldct_std = mean_std_mapping_per_ldct_slice_idx[index]['std']
-
                 # Apply mean/std normalization using subsample mean/std values
-                input = (input - ldct_mean) / ldct_std
-                target = (target - ndct_mean) / ndct_std
+                input = (input -  self.standardization_mean) / self.standardization_std
+                target = (target -  self.standardization_mean) / self.standardization_std
             else:
                 raise Exception("Normalization strategy ")
         else:
@@ -488,16 +483,13 @@ class CTDataset(Dataset):
             input = self.normalize_(input, translation, MIN_B_INPUT, MAX_B_INPUT)
             target = self.normalize_(target, translation, MIN_B_TARGET, MAX_B_TARGET)
 
-
-       
-        
         # Check if image need to be croped
         #if self.mode == 'train' or self.mode == 'train_osl_framework':
         #    self.crop_strategy = 'random'
         #else:
         #    self.crop_strategy = 'center'
         if self.crop_strategy is not None:
-            input, target = crop_pair(input, target, crop_size=512, crop_strategy=self.crop_strategy)
+            input, target = crop_pair(input, target, crop_size=512, crop_strategy=self.crop_strategy, random_generator=random_generator)
         ################# CODE ADD ################
 
         return input, target
@@ -516,7 +508,7 @@ class CTDataset(Dataset):
 
 dataset_dict = {
     #'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True, crop_strategy="center", context_mock_strategy_for_1st_and_last_frames="copy_neighbor"), # THIS IS THE DATASET USED FOR TRAINING, NO MATTER THE PARAM PASSED!!!!
-    'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True, crop_strategy=None,context_mock_strategy_for_1st_and_last_frames="copy_neighbor",normalization_strategy="mean_std"),
+    'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True, crop_strategy='random',context_mock_strategy_for_1st_and_last_frames="copy_neighbor",normalization_strategy="mean_std"),
     'mayo_2016_sim': partial(CTDataset, dataset='mayo_2016_sim', mode='test', test_id=9, dose=5, context=True),
     'mayo_2016': partial(CTDataset, dataset='mayo_2016', mode='test', test_id=9, dose=25, context=True),
     'mayo_2020': partial(CTDataset, dataset='mayo_2020', mode='test', test_id=None, dose=None, context=True),
@@ -524,6 +516,6 @@ dataset_dict = {
     'phantom': partial(CTDataset, dataset='phantom', mode='test', test_id=None, dose=108, context=True),
     ################ CODE ADD ################
     #'2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True, crop_strategy="center", context_mock_strategy_for_1st_and_last_frames="copy_neighbor")
-    '2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True, crop_strategy=None, context_mock_strategy_for_1st_and_last_frames="copy_neighbor",normalization_strategy="mean_std")
+    '2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True, crop_strategy='random', context_mock_strategy_for_1st_and_last_frames="copy_neighbor",normalization_strategy="mean_std")
     ################ CODE ADD ################
 }
