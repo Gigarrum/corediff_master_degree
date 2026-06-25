@@ -38,7 +38,7 @@ def mock_first_and_last_frames_context(slices_list, context_mock_strategy):
     return slices_list
 ################# CODE ADD ################
 
-def crop_pair(img1, img2, crop_size, crop_strategy, rng_generator=None):
+def crop_pair(img1, img2, crop_size, crop_strategy, random_generator=None):
     """
     Apply the same crop to two images.
 
@@ -56,8 +56,8 @@ def crop_pair(img1, img2, crop_size, crop_strategy, rng_generator=None):
     if H == crop_size and W == crop_size:
         return img1, img2
     if crop_strategy == 'random':
-        top = rng_generator.integers(0, H - crop_size + 1)
-        left = rng_generator.integers(0, W - crop_size + 1)
+        top = random_generator.integers(0, H - crop_size + 1)
+        left = random_generator.integers(0, W - crop_size + 1)
     elif crop_strategy == 'center':
         top = (H - crop_size) // 2
         left = (W - crop_size) // 2
@@ -72,7 +72,7 @@ class CTDataset(Dataset):
         self.context = context
         # Create a single generator withy fixed seed so it allow complete reproducibility when extracting random. This can't be done every time the random_crop is called
         # otherwise it will always reset the random generator and apply the same crop 
-        random_generator= np.random.default_rng(rng_seed)
+        self.random_generator = np.random.default_rng(rng_seed)
         
         ################# CODE ADD ################
         # The parameter was also ADD to __init__() params
@@ -80,8 +80,10 @@ class CTDataset(Dataset):
         self.crop_strategy = crop_strategy
         self.dataset = dataset
         self.normalization_strategy = normalization_strategy
+        print(crop_strategy, normalization_strategy, context_mock_strategy_for_1st_and_last_frames)
         ################# CODE ADD ################
         print(dataset)
+        
 
         if dataset in ['mayo_2016_sim', 'mayo_2016']:
             if dataset == 'mayo_2016_sim':
@@ -470,7 +472,7 @@ class CTDataset(Dataset):
                 input = (input -  self.standardization_mean) / self.standardization_std
                 target = (target -  self.standardization_mean) / self.standardization_std
             else:
-                raise Exception("Normalization strategy ")
+                raise Exception("Normalization strategy invalid!")
         else:
             # This parameters just replicate original parameters set by author to normalize_ method
             translation = -1024
@@ -489,7 +491,7 @@ class CTDataset(Dataset):
         #else:
         #    self.crop_strategy = 'center'
         if self.crop_strategy is not None:
-            input, target = crop_pair(input, target, crop_size=512, crop_strategy=self.crop_strategy, random_generator=random_generator)
+            input, target = crop_pair(input, target, crop_size=512, crop_strategy=self.crop_strategy, random_generator=self.random_generator)
         ################# CODE ADD ################
 
         return input, target
@@ -508,7 +510,7 @@ class CTDataset(Dataset):
 
 dataset_dict = {
     #'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True, crop_strategy="center", context_mock_strategy_for_1st_and_last_frames="copy_neighbor"), # THIS IS THE DATASET USED FOR TRAINING, NO MATTER THE PARAM PASSED!!!!
-    'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True, crop_strategy='random',context_mock_strategy_for_1st_and_last_frames="copy_neighbor"),
+    'train': partial(CTDataset, dataset='2detect', mode='train', test_id=None, dose=None, context=True),
     'mayo_2016_sim': partial(CTDataset, dataset='mayo_2016_sim', mode='test', test_id=9, dose=5, context=True),
     'mayo_2016': partial(CTDataset, dataset='mayo_2016', mode='test', test_id=9, dose=25, context=True),
     'mayo_2020': partial(CTDataset, dataset='mayo_2020', mode='test', test_id=None, dose=None, context=True),
@@ -516,6 +518,6 @@ dataset_dict = {
     'phantom': partial(CTDataset, dataset='phantom', mode='test', test_id=None, dose=108, context=True),
     ################ CODE ADD ################
     #'2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True, crop_strategy="center", context_mock_strategy_for_1st_and_last_frames="copy_neighbor")
-    '2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True, crop_strategy='random', context_mock_strategy_for_1st_and_last_frames="copy_neighbor")
+    '2detect': partial(CTDataset, dataset='2detect', mode='test', test_id=None, dose=None, context=True)
     ################ CODE ADD ################
 }
