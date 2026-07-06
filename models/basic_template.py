@@ -64,7 +64,7 @@ class TrainTask(object):
 
         # dataset
         parser.add_argument('--train_dataset', type=str, default='mayo_2016_sim')
-        parser.add_argument('--test_dataset', type=str, default='mayo_2016_sim')   # mayo_2020, piglte, phantom, mayo_2016
+        parser.add_argument('--test_dataset', type=str, default='mayo_2016_sim')
         parser.add_argument('--test_id', type=int, default=9,
                             help='test patient index for Mayo 2016')
         parser.add_argument('--context', action="store_true",
@@ -74,11 +74,17 @@ class TrainTask(object):
                             help='dose% data use for training and testing')
 
         ################# CODE ADD ################
-        parser.add_argument('--context_mock_strategy_for_1st_and_last_frames', type=str, default=None,
+        parser.add_argument('--context_mock_strategy_for_1st_and_last_frames', type=str, default='copy_neighbor',
                             help='Defines which strategy will be used to mock 1st and last frames context.'+
                             'Valid values: "copy_frame" (Mock missing context frame with a copy of the frame),'+
-                            '"copy_neighbor" (WMock missing context frame with a copy of existing neighbor frame).'
-                            )
+                            '"copy_neighbor" (WMock missing context frame with a copy of existing neighbor frame).'+
+                            'Defaults to "copy_neighbor."')
+        parser.add_argument('--normalization_strategy', type=str, default='min_max',
+                            help='Define the strategy used for dataset normalization. Valid values are "mean_std" or "min_max". Defaults to "min_max"')
+        parser.add_argument('--train_set_crop_strategy', type=str, default=None,
+                            help='Define the strategy used for train set patches crop. Valid values are "random" or "center". Defaults to None.')
+        parser.add_argument('--val_set_crop_strategy', type=str, default=None,
+                            help='Define the strategy used for validation set patches crop. Valid values are "random" or "center". Defaults to None.')
         ################# CODE ADD ################
 
         return parser
@@ -100,6 +106,9 @@ class TrainTask(object):
                 test_id=opt.test_id,
                 dose=opt.dose,
                 context=opt.context,
+                context_mock_strategy_for_1st_and_last_frames=opt.context_mock_strategy_for_1st_and_last_frames,
+                normalization_strategy=opt.normalization_strategy,
+                crop_strategy=opt.train_set_crop_strategy
             )
             train_sampler = RandomSampler(dataset=train_dataset, batch_size=opt.batch_size,
                                           num_iter=opt.max_iter,
@@ -121,9 +130,9 @@ class TrainTask(object):
             test_id=opt.test_id,
             dose=opt.dose,
             context=opt.context,
-            ################## CODE ADD ################
-            context_mock_strategy_for_1st_and_last_frames=opt.context_mock_strategy_for_1st_and_last_frames
-            ################# CODE ADD ################
+            context_mock_strategy_for_1st_and_last_frames=opt.context_mock_strategy_for_1st_and_last_frames,
+            normalization_strategy=opt.normalization_strategy,
+            crop_strategy=opt.val_set_crop_strategy
         )
         test_loader = torch.utils.data.DataLoader(
             dataset=test_dataset,
